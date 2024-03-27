@@ -4,6 +4,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import ElementPlus from 'element-plus'
+import '@/assets/css/main.scss'
 
 const app = createApp(App)
 
