@@ -11,11 +11,11 @@
 
                 <el-form-item label="坐标">
                     <div class="w-[150px]">
-                        <el-input v-model="marker.lng" type="number" placeholder="经度" clearable />
+                        <el-input v-model="marker.lng" placeholder="经度" clearable />
                     </div>
 
                     <div class="w-[150px] ml-auto">
-                        <el-input v-model="marker.lat" type="number" placeholder="纬度" clearable />
+                        <el-input v-model="marker.lat" placeholder="纬度" clearable />
                     </div>
                 </el-form-item>
 
@@ -199,12 +199,45 @@ function initDemoData() {
     }
 }
 
-function saveEditMarker() {
+function isValidLatLng(lat:number, lng:number) {  
+    // 转换为数字  
+    lat = parseFloat(lat.toString());  
+    lng = parseFloat(lng.toString());  
+  
+    // 检查是否为数字  
+    if (isNaN(lat) || isNaN(lng)) {  
+        return false;  
+    }  
+  
+    // 检查范围  
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {  
+        return false;  
+    }  
+  
+    return true;  
+}  
+
+function checkMarker() {
     if (!marker.value.name) {
         ElMessage({
             message: '请填写点位名称',
             type: 'warning',
         })
+        return false
+    }
+
+    if (!isValidLatLng(marker.value.lat, marker.value.lng)) {
+        ElMessage({
+            message: '请填写正确的经纬度',
+            type: 'warning',
+        })
+        return false
+    }
+    return true
+}
+
+function saveEditMarker() {
+    if (!checkMarker()) {
         return
     }
 
@@ -216,16 +249,29 @@ function saveEditMarker() {
             offset: new AMap.Pixel(0, -8),
             content: marker.value.name,
         })
+
+        contextMenuPositon = new AMap.LngLat(parseFloat(marker.value.lng.toString()), parseFloat(marker.value.lat.toString()))
+
+        // 对应的圆形覆盖物也随着移动
+        const markers = map.getAllOverlays('marker')
+        for (const temp of markers) {
+            if (temp.className === 'Overlay.CircleMarker') {
+                const tempPos: AMap.LngLat = temp.getExtData()
+                const curPos: AMap.LngLat | null | undefined = curMarker?.getPosition()
+                if (tempPos && curPos && tempPos.lat === curPos.lat && tempPos.lng === curPos.lng) {
+                    (temp as AMap.CircleMarker).setExtData({...contextMenuPositon});
+                    (temp as AMap.CircleMarker).setCenter(contextMenuPositon as AMap.LngLatLike);
+                }
+            }
+        }
+
+        curMarker.setPosition([contextMenuPositon.lng,  contextMenuPositon.lat]as AMap.Vector2)
         curMarker.setExtData({ ...marker.value })
     }
 }
 
 function saveAddMarker() {
-    if (!marker.value.name) {
-        ElMessage({
-            message: '请填写点位名称',
-            type: 'warning',
-        })
+    if (!checkMarker()) {
         return
     }
 
